@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sales Opportunities Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f6f4;
+    --surface: #ffffff;
+    --sidebar: #14171c;
+    --sidebar-line: #262b33;
+    --ink: #14171c;
+    --muted: #6b7280;
+    --line: #e3e3df;
+    --accent: #2f6f5e;
+    --accent-soft: #e7f1ee;
+    --lost: #b0503a;
+    --lost-soft: #f6ece8;
+    --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, monospace;
+    --radius: 6px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--sans); background: var(--bg); color: var(--ink); font-size: 14px; line-height: 1.5; }
+  a { color: inherit; }
+
+  .shell { display: flex; min-height: 100vh; }
+
+  /* ---- sidebar ---- */
+  .sidebar {
+    width: 220px; flex-shrink: 0; background: var(--sidebar); color: #e7e9ec;
+    display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
+  }
+  .brand { padding: 22px 20px 18px; border-bottom: 1px solid var(--sidebar-line); }
+  .brand .name { font-weight: 600; font-size: 15px; letter-spacing: -0.01em; }
+  .brand .sub { color: #8b929c; font-size: 12px; margin-top: 3px; }
+  .nav { padding: 14px 10px; flex: 1; }
+  .nav-label { color: #6d7580; font-size: 11px; padding: 10px 10px 4px; }
+  .nav button {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    background: none; border: none; color: #c7cbd1; font: inherit; font-size: 13.5px;
+    padding: 9px 10px; border-radius: var(--radius); cursor: pointer; margin: 1px 0;
+  }
+  .nav button:hover { background: #1d2129; color: #fff; }
+  .nav button.active { background: var(--accent); color: #fff; }
+  .nav button .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .55; flex-shrink: 0; }
+  .nav button.active .dot { opacity: 1; }
+  .sidebar-foot { padding: 14px 20px 18px; font-size: 11.5px; color: #6d7580; border-top: 1px solid var(--sidebar-line); }
+
+  /* ---- main ---- */
+  .main { flex: 1; min-width: 0; }
+  .topbar {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 16px;
+    padding: 24px 32px 18px; border-bottom: 1px solid var(--line); background: var(--surface);
+  }
+  .topbar h1 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+  .topbar p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+  .topbar-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+  .content { padding: 24px 32px 48px; max-width: 1080px; }
+
+  /* buttons & inputs */
+  button.ghost, a.ghost {
+    display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+    background: var(--surface); border: 1px solid var(--line); color: var(--ink);
+    padding: 7px 13px; border-radius: var(--radius); font: inherit; font-size: 13px; cursor: pointer;
+  }
+  button.ghost:hover, a.ghost:hover { border-color: #c7cbc3; }
+  select, input[type="search"] {
+    padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--radius);
+    font: inherit; font-size: 13px; background: var(--surface); color: var(--ink);
+  }
+  input[type="search"] { min-width: 200px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 11.5px; color: var(--muted); }
+  .controls { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; margin-bottom: 18px; }
+
+  /* ---- stat strip (overview) ---- */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-bottom: 24px; }
+  .stat { background: var(--surface); padding: 16px 18px; }
+  .stat .label { font-size: 12px; color: var(--muted); }
+  .stat .value { font-family: var(--mono); font-size: 22px; margin-top: 6px; letter-spacing: -0.01em; }
+  .stat .value.accent { color: var(--accent); }
+
+  /* ---- table ---- */
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #fafaf9; }
+  th { background: #fbfbfa; font-weight: 500; color: var(--muted); font-size: 12px; user-select: none; }
+  th.sortable { cursor: pointer; }
+  th.sortable:hover { color: var(--ink); }
+  th .arrow { font-size: 10px; margin-left: 3px; color: var(--accent); }
+  td.num, th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  td.mono { font-family: var(--mono); }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 500; }
+  .tag.Won { background: var(--accent-soft); color: var(--accent); }
+  .tag.Lost { background: var(--lost-soft); color: var(--lost); }
+
+  .pager { display: flex; gap: 12px; align-items: center; margin-top: 14px; color: var(--muted); font-size: 13px; }
+  .pager button.ghost:disabled { opacity: .4; cursor: default; }
+
+  /* ---- bars ---- */
+  .bar-block { margin-bottom: 22px; }
+  .bar-block h3 { font-size: 12.5px; color: var(--muted); font-weight: 500; margin: 0 0 10px; }
+  .bar-row { display: grid; grid-template-columns: 120px 1fr 90px; gap: 10px; align-items: center; margin: 7px 0; font-size: 12.5px; }
+  .bar-row .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { background: var(--line); border-radius: 3px; height: 10px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--accent); border-radius: 3px; }
+  .bar-row .val { text-align: right; font-family: var(--mono); }
+
+  .vchart { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 18px 18px 8px; margin-bottom: 20px; }
+  .vbars { display: flex; align-items: flex-end; gap: 3px; height: 160px; }
+  .vbar { flex: 1 0 10px; background: var(--accent); border-radius: 2px 2px 0 0; min-height: 2px; }
+  .vlabels { display: flex; gap: 3px; margin-top: 6px; }
+  .vlabels span { flex: 1 0 10px; text-align: center; font-size: 9.5px; color: var(--muted); writing-mode: vertical-rl; transform: rotate(180deg); height: 32px; overflow: hidden; }
+
+  .empty, .error, .loading { padding: 30px 0; color: var(--muted); font-size: 13.5px; }
+  .error { color: var(--lost); }
+
+  @media (max-width: 760px) {
+    .shell { flex-direction: column; }
+    .sidebar { width: 100%; height: auto; position: static; flex-direction: row; overflow-x: auto; }
+    .brand, .sidebar-foot { display: none; }
+    .nav { display: flex; padding: 8px; }
+    .nav-label { display: none; }
+    .topbar, .content { padding-left: 18px; padding-right: 18px; }
+  }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="name">Sales Opportunities Console</div>
+      <div class="sub">CRM data warehouse</div>
+    </div>
+    <nav class="nav" id="nav">
+      <div class="nav-label">Overview</div>
+      <button data-view="overview" class="active"><span class="dot"></span>Dashboard</button>
+      <div class="nav-label">Reports</div>
+      <button data-view="products"><span class="dot"></span>Products</button>
+      <button data-view="opportunities"><span class="dot"></span>Sales opportunities</button>
+      <div class="nav-label">Analyses</div>
+      <button data-view="establishment"><span class="dot"></span>Establishment year revenue</button>
+      <button data-view="opportunity_analysis"><span class="dot"></span>Sales opportunity value</button>
+    </nav>
+    <div class="sidebar-foot">Served by queryEngine.php</div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <h1 id="view-title">Dashboard</h1>
+        <p id="view-sub"></p>
+      </div>
+      <div class="topbar-actions" id="view-actions"></div>
+    </div>
+    <div class="content" id="view">Loading…</div>
+  </div>
+</div>
+
+<script>
+const ENGINE = 'queryEngine.php';
+const $ = (s, el = document) => el.querySelector(s);
+const fmt = n => typeof n === 'number' ? n.toLocaleString(undefined, {maximumFractionDigits: 2}) : (n ?? '—');
+const money = n => typeof n === 'number' ? '$' + fmt(n) : '—';
+const esc = s => String(s ?? '—').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const label = c => c.replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
+const MONEY_COLS = new Set(['sales_price', 'close_value', 'total_value', 'average_value', 'won_value']);
+const MONO_COLS = new Set(['opportunity_id', 'close_date']);
+
+async function query(params) {
+  const res = await fetch(ENGINE + '?' + new URLSearchParams(params));
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+function exportLink(params) {
+  return ENGINE + '?' + new URLSearchParams({...params, format: 'csv'});
+}
+
+function table(data, opts = {}) {
+  if (!data.rows.length) return '<p class="empty">No rows match these filters.</p>';
+  const sort = opts.sort, dir = opts.dir, onSort = opts.onSort;
+  const head = data.columns.map(c => {
+    const isNum = typeof data.rows[0][c] === 'number';
+    const sortable = onSort && opts.sortable && opts.sortable.includes(c);
+    const arrow = sort === c ? `<span class="arrow">${dir === 'asc' ? '▲' : '▼'}</span>` : '';
+    return `<th class="${isNum ? 'num' : ''} ${sortable ? 'sortable' : ''}" data-col="${c}">${label(c)}${arrow}</th>`;
+  }).join('');
+  const body = data.rows.map(r => '<tr>' + data.columns.map(c => {
+    const v = r[c], isNum = typeof v === 'number';
+    let shown;
+    if (c === 'deal_stage') shown = `<span class="tag ${v}">${esc(v)}</span>`;
+    else if (MONEY_COLS.has(c)) shown = money(v);
+    else if (c === 'win_rate_pct') shown = (v === null ? '—' : v + '%');
+    else if (c === 'year_established') shown = esc(v);
+    else if (isNum) shown = fmt(v);
+    else shown = esc(v);
+    const cls = [isNum && c !== 'year_established' ? 'num' : '', MONO_COLS.has(c) ? 'mono' : ''].join(' ');
+    return `<td class="${cls}">${shown}</td>`;
+  }).join('') + '</tr>').join('');
+  const html = `<div class="table-wrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  return {html, bind(el) {
+    if (!onSort) return;
+    el.querySelectorAll('th.sortable').forEach(th => th.addEventListener('click', () => onSort(th.dataset.col)));
+  }};
+}
+
+function renderTable(container, data, opts) {
+  const t = table(data, opts);
+  if (typeof t === 'string') { container.innerHTML = t; return; }
+  container.innerHTML = t.html;
+  t.bind(container);
+}
+
+function hBars(rows, labelKey, valueKey, format) {
+  const max = Math.max(...rows.map(r => r[valueKey]), 1);
+  return rows.map(r => `<div class="bar-row">
+      <span class="name">${esc(r[labelKey])}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${(r[valueKey] / max * 100).toFixed(1)}%"></div></div>
+      <span class="val">${format(r[valueKey])}</span></div>`).join('');
+}
+
+function vBars(rows, labelKey, valueKey) {
+  const max = Math.max(...rows.map(r => r[valueKey]), 1);
+  return `<div class="vchart"><div class="vbars">${rows.map(r =>
+      `<div class="vbar" title="${esc(r[labelKey])}: ${money(r[valueKey])}M" style="height:${(r[valueKey] / max * 100).toFixed(1)}%"></div>`).join('')}
+    </div><div class="vlabels">${rows.map(r => `<span>${esc(r[labelKey])}</span>`).join('')}</div></div>`;
+}
+
+function setHeader(title, sub, actionsHtml = '') {
+  $('#view-title').textContent = title;
+  $('#view-sub').textContent = sub;
+  $('#view-actions').innerHTML = actionsHtml;
+}
+
+const views = {
+  async overview(el) {
+    const d = await query({query: 'overview'});
+    const s = d.rows[0];
+    setHeader('Dashboard', 'Headline numbers across the whole warehouse.');
+    el.innerHTML = `<div class="stats">
+      <div class="stat"><div class="label">Accounts</div><div class="value">${fmt(s.accounts)}</div></div>
+      <div class="stat"><div class="label">Products</div><div class="value">${fmt(s.products)}</div></div>
+      <div class="stat"><div class="label">Won opportunities</div><div class="value">${fmt(s.won_opportunities)}</div></div>
+      <div class="stat"><div class="label">Win rate</div><div class="value accent">${s.win_rate_pct ?? '—'}%</div></div>
+      <div class="stat"><div class="label">Won value</div><div class="value accent">${money(s.won_value)}</div></div>
+      <div class="stat"><div class="label">Top product</div><div class="value" style="font-size:15px">${esc(s.top_product)}</div></div>
+      <div class="stat"><div class="label">Top sector by revenue</div><div class="value" style="font-size:15px">${esc(s.top_sector)}</div></div>
+    </div>
+    <p class="empty" style="padding-top:0">Use the sidebar to open the two reports and two analyses required by the brief.</p>`;
+  },
+
+  async products(el) {
+    const d = await query({query: 'products'});
+    setHeader('Products report', `All product information (${d.rows.length} products).`,
+      `<a class="ghost" href="${exportLink({query: 'products'})}">Export CSV</a>`);
+    renderTable(el, d);
+  },
+
+  async opportunities(el, state = {stage: 'All', product: '', search: '', sort: 'close_date', dir: 'desc', page: 1}) {
+    const d = await query({query: 'opportunities', stage: state.stage, product: state.product,
+                            search: state.search, sort: state.sort, dir: state.dir, page: state.page, page_size: 25});
+    const m = d.meta;
+    setHeader('Sales opportunities report', `Won and lost opportunities with values and associated products.`,
+      `<a class="ghost" href="${exportLink({query: 'opportunities', stage: state.stage, product: state.product, search: state.search, sort: state.sort, dir: state.dir, page_size: 200})}">Export CSV</a>`);
+    const go = patch => views.opportunities(el, {...state, ...patch});
+    el.innerHTML = `
+      <div class="controls">
+        <div class="field"><label>Outcome</label><select id="f-stage">${['All','Won','Lost'].map(s => `<option ${s === state.stage ? 'selected' : ''}>${s}</option>`).join('')}</select></div>
+        <div class="field"><label>Product</label><select id="f-product"><option value="">All</option>${m.products.map(p => `<option ${p === state.product ? 'selected' : ''}>${esc(p)}</option>`).join('')}</select></div>
+        <div class="field"><label>Search account or agent</label><input type="search" id="f-search" placeholder="e.g. Acme" value="${esc(state.search === '—' ? '' : state.search)}"></div>
+      </div>
+      <p class="empty" style="padding:0 0 14px">${fmt(m.total)} matching rows · total value ${money(m.sum_close_value)} (lost deals carry a value of 0)</p>
+      <div id="tbl"></div>
+      <div class="pager"><button class="ghost" id="prev" ${m.page <= 1 ? 'disabled' : ''}>Previous</button>
+        <span>Page ${m.page} of ${m.pages}</span><button class="ghost" id="next" ${m.page >= m.pages ? 'disabled' : ''}>Next</button></div>`;
+    renderTable($('#tbl', el), d, {
+      sort: m.sort, dir: m.dir, sortable: ['opportunity_id','account','sales_agent','product','close_date','close_value'],
+      onSort: col => go({sort: col, dir: (state.sort === col && state.dir === 'desc') ? 'asc' : 'desc', page: 1}),
+    });
+    $('#f-stage', el).onchange = e => go({stage: e.target.value, page: 1});
+    $('#f-product', el).onchange = e => go({product: e.target.value, page: 1});
+    let t;
+    $('#f-search', el).oninput = e => { clearTimeout(t); const v = e.target.value; t = setTimeout(() => go({search: v, page: 1}), 350); };
+    $('#prev', el).onclick = () => go({page: state.page - 1});
+    $('#next', el).onclick = () => go({page: state.page + 1});
+  },
+
+  async establishment(el) {
+    const d = await query({query: 'establishment'});
+    setHeader('Establishment year revenue analysis', 'Total annual revenue of accounts by year founded, in USD millions.',
+      `<a class="ghost" href="${exportLink({query: 'establishment'})}">Export CSV</a>`);
+    el.innerHTML = vBars(d.rows, 'year_established', 'total_revenue');
+    const wrap = document.createElement('div');
+    renderTable(wrap, d);
+    el.appendChild(wrap);
+  },
+
+  async opportunity_analysis(el, stage = 'Won') {
+    const d = await query({query: 'opportunity_analysis', stage});
+    setHeader('Sales opportunity analysis', `Total and average opportunity value by product, based on ${d.meta.basis}.`,
+      `<a class="ghost" href="${exportLink({query: 'opportunity_analysis', stage})}">Export CSV</a>`);
+    el.innerHTML = `
+      <div class="controls"><div class="field"><label>Include</label><select id="f-basis">
+        <option value="Won" ${stage === 'Won' ? 'selected' : ''}>Won deals only</option>
+        <option value="ClosedAll" ${stage === 'ClosedAll' ? 'selected' : ''}>Won and lost deals (lost = 0)</option></select></div></div>
+      <div class="bar-block"><h3>Total value</h3>${hBars(d.rows, 'product', 'total_value', money)}</div>
+      <div class="bar-block"><h3>Average value</h3>${hBars(d.rows, 'product', 'average_value', money)}</div>
+      <div id="tbl"></div>`;
+    renderTable($('#tbl', el), d);
+    $('#f-basis', el).onchange = e => views.opportunity_analysis(el, e.target.value);
+  }
+};
+
+async function show(name) {
+  document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+  const el = $('#view');
+  el.innerHTML = '<p class="loading">Loading…</p>';
+  try { await views[name](el); }
+  catch (e) { el.innerHTML = `<p class="error">Could not load data: ${esc(e.message)}</p>`; }
+}
+$('#nav').addEventListener('click', e => { const b = e.target.closest('button'); if (b) show(b.dataset.view); });
+show('overview');
+</script>
+</body>
+</html>
